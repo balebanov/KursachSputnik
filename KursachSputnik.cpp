@@ -2,12 +2,12 @@
 #include <cmath>
 #include "GLOEphemeris.h"
 
-GLOEphemeris R4, R5, R6, R13, R14, R19, R20, R21, R22; // эфемериды в первой точке
-void setUpFirstEphemeris(); // присвоение значений эфемеридам в первой точке
 const double MU = 398600.44; // мю [км3/с2]
 const double R_e = 6378.136; // радиус Земли Rэ [км]
 const double C20 = -1082.64e-6; // коэффициент С20 [б/р]
 const double w_e = 0.7292115e-4; // омега_з - угловая скорость вращения земли [рад/с]
+GLOEphemeris R4, R5, R6, R13, R14, R19, R20, R21, R22; // эфемериды в первой точке
+void setUpFirstEphemeris(); // присвоение значений эфемеридам в первой точке
 
 int main()
 {
@@ -52,9 +52,9 @@ int main()
 	// Вычисление координат и составляющих вектора скорости спутников
 	for (int i = 0; i < 9; i++) {
 		std::cout << "[" << numberNKA[i] << "]: T_MDV = " << t_pr[i] << " sec; tb = " << arr[i].tb << " sec;" << std::endl;
-	} // шаг h - больше 0
-
-	std::cout << std::endl << std::endl;
+	}
+	
+	std::cout << std::endl << std::endl << "Integration step h > 0" << std::endl;
 
 	// Задаем компоненты вектора s для каждого спутника 
 	double s[9][6]; // 9 - число спутников, 6 число составляющих
@@ -74,13 +74,32 @@ int main()
 	// а в описании самой функции f написано, как вычисляются только 
 	// f(1), f(2), ..., f(6)
 
-	double h = 1; // шаг интегрирования
+	double h = 2; // шаг интегрирования
 	double t_i = arr[0].tb; // у всех спутников параметр tb - одинаковый
 	
 	// для спутника R4
 	double n = (t_pr[0] - t_i)/h; // T_МДВ для R4
-	std::cout << "Integration steps: " << n << std::endl;
+	std::cout << "Number of integration steps: " << int(n) << std::endl;
 	
+	// Попробуем сделать один цикл интегрирования для спутника R4
+	double arg[6];
+	for (int i = 0; i < 6; i++) arg[i] = s[0][i];
+	double f[6];
+	f[0] = arg[3]; f[1] = arg[4]; f[2] = arg[5];
+	double r = sqrt(arg[0] * arg[0] + arg[1] * arg[1] + arg[2] * arg[2]);
+	double A = MU / r;
+	f[3] = (w_e * w_e - A) * arg[0] + 2 * w_e * arg[4] + 1.5 * C20 * MU * R_e * R_e / pow(r, 5) * arg[0] * (1 - (5 * arg[2] * arg[2] / r * r)) + R4.w[0];
+	f[4] = (w_e * w_e - A) * arg[1] + 2 * w_e * arg[3] + 1.5 * C20 * MU * R_e * R_e / pow(r, 5) * arg[1] * (1 - (5 * arg[2] * arg[2] / r * r)) + R4.w[1];
+	f[5] = -A * arg[2] + 1.5 * C20 * MU * R_e * R_e / pow(r, 5) * arg[2] * (3 - (5 * arg[2] * arg[2] / r * r)) + R4.w[2];
+
+	std::cout << "One cycle of Runge-Kutta for satellite R4:" << std::endl << std::endl;
+	for (int i = 0; i < 3; i++) {
+		std::cout << "f[" << i << "] = " << f[i] << std::endl;
+	}
+	std::cout << std::endl;
+	std::cout << "[" << R4.r[0] << "; " << R4.r[1] << "; " << R4.r[2] << "]" << std::endl;
+
+	// Очевидно, что результаты неправильные
 
 	return 0;
 }

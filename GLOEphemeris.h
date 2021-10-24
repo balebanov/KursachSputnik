@@ -1,3 +1,5 @@
+#pragma once
+
 struct GLOEphemeris
 {
 	unsigned int sv; // номер слота орбиты спутника от 1 до 24 []

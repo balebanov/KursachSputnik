@@ -38,29 +38,30 @@ int main()
 	
 	for (int i = 0; i < 9; i++) {
 		t_ka[i] = T_reciever - r_pdelay[i];
-		std::cout << "t_ka[" << numberNKA[i] << "] = " << std::fixed << t_ka[i] << " sec" << std::endl;
+		// std::cout << "t_ka[" << numberNKA[i] << "] = " << std::fixed << t_ka[i] << " sec" << std::endl;
 	}
 	
-	std::cout << std::endl << std::endl;
+	// std::cout << std::endl << std::endl;
 
 	for (int i = 0; i < 9; i++) {
 		double t_pr_body = t_ka[i] + arr[i].tauSys + arr[i].tau - (arr[i].gamma * (t_ka[i] - arr[i].tb));
-		t_pr[i] = fmod(t_pr_body, 86400); // показания спутниковых часов на момент предшествия
-		std::cout << "t_pr[" << numberNKA[i] << "] = " << t_pr[i] << " sec" << std::endl;
+		t_pr[i] = fmod(t_pr_body, 86400); // показания спутниковых часов на момент предшествия (T_МДВ)
+		std::cout << "t_pr[" << numberNKA[i] << "] = " << std::fixed << t_pr[i] << " sec" << std::endl;
 	}
 
-	std::cout << std::endl << std::endl;
+	// std::cout << std::endl << std::endl;
 
 	// Вычисление координат и составляющих вектора скорости спутников
-	for (int i = 0; i < 9; i++) {
-		std::cout << "[" << numberNKA[i] << "]: T_MDV = " << t_pr[i] << " sec; tb = " << arr[i].tb << " sec;" << std::endl;
-	}
+	//  for (int i = 0; i < 9; i++) {
+	//	  std::cout << "[" << numberNKA[i] << "]: T_MDV = " << t_pr[i] << " sec; tb = " << arr[i].tb << " sec;" << std::endl;
+	//  }
 	
 	std::cout << std::endl << "Integration step h > 0" << std::endl << std::endl;
 
 	// Задаем компоненты вектора s для каждого спутника 
 	double s[9][6]; // 9 - число спутников, 6 число составляющих
-	std::cout << "s[0][i] before intergation: " << std::endl;
+	std::cout << "s[0][i] before intergation: " << std::endl << std::endl;
+
 	for (int i = 0; i < 9; i++) {
 		s[i][0] = arr[i].r[0];
 		s[i][1] = arr[i].r[1];
@@ -75,15 +76,16 @@ int main()
 	
 	// Попробуем сделать один цикл интегрирования для спутника R4
 	for (int i = 0; i < 6; i++) {
-		std::cout << "s[0][" << i << "] = " << s[0][i] << std::endl;
+		std::cout << "s[0][" << i << "] = " << s[0][i] << std::endl; // до интегрирования
 	}
 
-	double n = (t_pr[0] - t_i) / h; // T_МДВ для R4
-	std::cout << "Number of integration steps: " << int(n) << std::endl;
+	double n = (t_pr[0] - t_i) / h; 
+	std::cout << std::endl << "Number of integration steps: " << int(n) << std::endl;
 
-	while (t_i < t_pr[0]) { // перебегает, 79090
-	// for(int i = 0; i < int(n); i++) { // не перебегает
-		double arg[6], f[6];
+	double arg[6], f[6];
+	// while (t_i < t_pr[0]) { // перебегает, 79090
+	for(int i = 0; i < int(n); i++) { // не перебегает
+		
 		for (int i = 0; i < 6; i++) arg[i] = s[0][i]; // arg_i = s_i
 		double r = sqrt(arg[0] * arg[0] + arg[1] * arg[1] + arg[2] * arg[2]);
 		double A = MU / r;
@@ -117,12 +119,11 @@ int main()
 		t_i = t_i + h;
 	}
 
-	std::cout << std::endl << "One cycle of Runge-Kutta for satellite R4:" << std::endl << std::endl;
 	for (int i = 0; i < 6; i++) {
 		std::cout << "s[0][" << i << "] = " << s[0][i] << std::endl;
 	}
 	std::cout << "t_i = " << t_i << std::endl;
-	// все равно какая-то непонятная херня
+	// все равно какая-то неправильная херня
 
 	return 0;
 }

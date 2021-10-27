@@ -1,5 +1,7 @@
 ﻿#include <iostream>
+#include <cstdio>
 #include <cmath>
+#include <Windows.h>
 #include "GLOEphemeris.h"
 
 const double MU = 398600.44; // мю [км3/с2]
@@ -54,11 +56,11 @@ int main()
 		std::cout << "[" << numberNKA[i] << "]: T_MDV = " << t_pr[i] << " sec; tb = " << arr[i].tb << " sec;" << std::endl;
 	}
 	
-	std::cout << std::endl << std::endl << "Integration step h > 0" << std::endl;
+	std::cout << std::endl << "Integration step h > 0" << std::endl << std::endl;
 
 	// Задаем компоненты вектора s для каждого спутника 
 	double s[9][6]; // 9 - число спутников, 6 число составляющих
-
+	std::cout << "s[0][i] before intergation: " << std::endl;
 	for (int i = 0; i < 9; i++) {
 		s[i][0] = arr[i].r[0];
 		s[i][1] = arr[i].r[1];
@@ -68,42 +70,59 @@ int main()
 		s[i][5] = arr[i].v[2];
 	}
 	
-	// Далее нужно сформировать 6-мерную вектор-функцию f, 
-	// но непонятно, куда подставлять аргумент t:
-	// в цикле Рунге-Кутта f(t[i], arg[i]), 
-	// а в описании самой функции f написано, как вычисляются только 
-	// f(1), f(2), ..., f(6)
-
-	double h = 2; // шаг интегрирования
+	double h = 10.; // шаг интегрирования [с]
 	double t_i = arr[0].tb; // у всех спутников параметр tb - одинаковый
 	
-	// для спутника R4
-	double n = (t_pr[0] - t_i)/h; // T_МДВ для R4
-	std::cout << "Number of integration steps: " << int(n) << std::endl;
-	
 	// Попробуем сделать один цикл интегрирования для спутника R4
-	double arg[6];
-	for (int i = 0; i < 6; i++) arg[i] = s[0][i];
-	double f[6];
-	f[0] = arg[3]; f[1] = arg[4]; f[2] = arg[5];
-	double r = sqrt(arg[0] * arg[0] + arg[1] * arg[1] + arg[2] * arg[2]);
-	double A = MU / r;
-	f[3] = (w_e * w_e - A) * arg[0] + 2 * w_e * arg[4] + 1.5 * C20 * MU * R_e * R_e / pow(r, 5) * arg[0] * (1 - (5 * arg[2] * arg[2] / r * r)) + R4.w[0];
-	f[4] = (w_e * w_e - A) * arg[1] + 2 * w_e * arg[3] + 1.5 * C20 * MU * R_e * R_e / pow(r, 5) * arg[1] * (1 - (5 * arg[2] * arg[2] / r * r)) + R4.w[1];
-	f[5] = -A * arg[2] + 1.5 * C20 * MU * R_e * R_e / pow(r, 5) * arg[2] * (3 - (5 * arg[2] * arg[2] / r * r)) + R4.w[2];
-
-	std::cout << "One cycle of Runge-Kutta for satellite R4:" << std::endl << std::endl;
-	for (int i = 0; i < 3; i++) {
-		std::cout << "f[" << i << "] = " << f[i] << std::endl;
+	for (int i = 0; i < 6; i++) {
+		std::cout << "s[0][" << i << "] = " << s[0][i] << std::endl;
 	}
-	std::cout << std::endl;
-	std::cout << "[" << R4.r[0] << "; " << R4.r[1] << "; " << R4.r[2] << "]" << std::endl;
 
-	// Очевидно, что результаты неправильные
-	// Есть вариант прилепить время t_i в вектор-функцию f просто седьмой компонентой:
-	// f[7] = {t_i, ....},
-	// но что-то мне подсказывает, что это фуфел галимый.
-	// Надо ждать занятия и задавать вопросы. Хотя что-то мне подсказывает, что особо ответов я не получу...
+	double n = (t_pr[0] - t_i) / h; // T_МДВ для R4
+	std::cout << "Number of integration steps: " << int(n) << std::endl;
+
+	while (t_i < t_pr[0]) { // перебегает, 79090
+	// for(int i = 0; i < int(n); i++) { // не перебегает
+		double arg[6], f[6];
+		for (int i = 0; i < 6; i++) arg[i] = s[0][i]; // arg_i = s_i
+		double r = sqrt(arg[0] * arg[0] + arg[1] * arg[1] + arg[2] * arg[2]);
+		double A = MU / r;
+		f[0] = arg[3]; 
+		f[1] = arg[4]; 
+		f[2] = arg[5];
+		f[3] = (w_e * w_e - A) * arg[0] + 2 * w_e * arg[4] + 1.5 * C20 * MU * R_e * R_e / pow(r, 5) * arg[0] * (1 - (5 * arg[2] * arg[2] / r * r)) + R4.w[0];
+		f[4] = (w_e * w_e - A) * arg[1] + 2 * w_e * arg[3] + 1.5 * C20 * MU * R_e * R_e / pow(r, 5) * arg[1] * (1 - (5 * arg[2] * arg[2] / r * r)) + R4.w[1];
+		f[5] = -A * arg[2] + 1.5 * C20 * MU * R_e * R_e / pow(r, 5) * arg[2] * (3 - (5 * arg[2] * arg[2] / r * r)) + R4.w[2];
+
+		double k1[6], k2[6], k3[6], k4[6];
+		for (int i = 0; i < 6; i++) {
+			k1[i] = h * f[i]; // k1_i= h*f_i
+			arg[i] = s[0][i] + 0.5 * k1[i]; // arg_i = s_i + 0.5*k1_i
+		// }
+		// for (int i = 0; i < 6; i++) {
+			k2[i] = h * f[i]; // k2_i = h*f_i
+			arg[i] = s[0][i] + 0.5 * k2[i]; // arg_i = s_i + 0.5*k2_i
+		// }
+		// for (int i = 0; i < 6; i++) {
+			k3[i] = h * f[i]; // k3_i = h*f_i
+			arg[i] = s[0][i] + k3[i]; // arg_i = s_i + k3_i
+		// }
+		// for (int i = 0; i < 6; i++) {
+			k4[i] = h * f[i]; // k4_i = h*f_i
+			arg[i] = s[0][i] + k4[i]; // arg_i = s_i + k4_i
+		}
+		double d_s[6];
+		for (int i = 0; i < 6; i++) d_s[i] = (k1[i] + 2 * k2[i] + 2 * k3[i] + k4[i]) / 6;
+		for (int i = 0; i < 6; i++) s[0][i] = s[0][i] + d_s[i];
+		t_i = t_i + h;
+	}
+
+	std::cout << std::endl << "One cycle of Runge-Kutta for satellite R4:" << std::endl << std::endl;
+	for (int i = 0; i < 6; i++) {
+		std::cout << "s[0][" << i << "] = " << s[0][i] << std::endl;
+	}
+	std::cout << "t_i = " << t_i << std::endl;
+	// все равно какая-то непонятная херня
 
 	return 0;
 }

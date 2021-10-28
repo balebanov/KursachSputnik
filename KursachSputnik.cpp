@@ -10,6 +10,7 @@ const double C20 = -1082.64e-6; // коэффициент С20 [б/р]
 const double w_e = 0.7292115e-4; // омега_з - угловая скорость вращения земли [рад/с]
 GLOEphemeris R4, R5, R6, R13, R14, R19, R20, R21, R22; // эфемериды в первой точке
 void setUpFirstEphemeris(); // присвоение значений эфемеридам в первой точке
+void reCalc(double arg[6], GLOEphemeris R, double f[6]);
 
 int main()
 {
@@ -71,8 +72,8 @@ int main()
 		s[i][5] = arr[i].v[2];
 	}
 	
-	double h = 10.; // шаг интегрирования [с]
-	double t_i = arr[0].tb; // у всех спутников параметр tb - одинаковый
+	double h = 1.; // шаг интегрирования [с]
+	double t_i = arr[0].tb; // у всех спутников параметр tb - одинаковый 78300
 	
 	// Попробуем сделать один цикл интегрирования для спутника R4
 	for (int i = 0; i < 6; i++) {
@@ -83,49 +84,51 @@ int main()
 	std::cout << std::endl << "Number of integration steps: " << int(n) << std::endl;
 
 	double arg[6], f[6];
-	// while (t_i < t_pr[0]) { // перебегает, 79090
-	for(int i = 0; i < int(n); i++) { // не перебегает
-		
-		for (int i = 0; i < 6; i++) arg[i] = s[0][i]; // arg_i = s_i
-		double r = sqrt(arg[0] * arg[0] + arg[1] * arg[1] + arg[2] * arg[2]);
-		double A = MU / r;
-		f[0] = arg[3]; 
-		f[1] = arg[4]; 
-		f[2] = arg[5];
-		f[3] = (w_e * w_e - A) * arg[0] + 2 * w_e * arg[4] + 1.5 * C20 * MU * R_e * R_e / pow(r, 5) * arg[0] * (1 - (5 * arg[2] * arg[2] / r * r)) + R4.w[0];
-		f[4] = (w_e * w_e - A) * arg[1] + 2 * w_e * arg[3] + 1.5 * C20 * MU * R_e * R_e / pow(r, 5) * arg[1] * (1 - (5 * arg[2] * arg[2] / r * r)) + R4.w[1];
-		f[5] = -A * arg[2] + 1.5 * C20 * MU * R_e * R_e / pow(r, 5) * arg[2] * (3 - (5 * arg[2] * arg[2] / r * r)) + R4.w[2];
+	
+	int c = 0; 
+	for (double ti = t_i; ti <= t_pr[0]; ti = ti + h) { // t_pr[0] = 79089.....
+		for (int i = 0; i < 6; i++) arg[i] = s[0][i];
 
-		double k1[6], k2[6], k3[6], k4[6];
-		for (int i = 0; i < 6; i++) {
-			k1[i] = h * f[i]; // k1_i= h*f_i
-			arg[i] = s[0][i] + 0.5 * k1[i]; // arg_i = s_i + 0.5*k1_i
-		// }
-		// for (int i = 0; i < 6; i++) {
-			k2[i] = h * f[i]; // k2_i = h*f_i
-			arg[i] = s[0][i] + 0.5 * k2[i]; // arg_i = s_i + 0.5*k2_i
-		// }
-		// for (int i = 0; i < 6; i++) {
-			k3[i] = h * f[i]; // k3_i = h*f_i
-			arg[i] = s[0][i] + k3[i]; // arg_i = s_i + k3_i
-		// }
-		// for (int i = 0; i < 6; i++) {
-			k4[i] = h * f[i]; // k4_i = h*f_i
-			arg[i] = s[0][i] + k4[i]; // arg_i = s_i + k4_i
-		}
-		double d_s[6];
+		reCalc(arg, R4, f);
+		double k1[6], k2[6], k3[6], k4[6], d_s[6];
+		for (int i = 0; i < 6; i++) k1[i] = h * f[i];
+		for (int i = 0; i < 6; i++) arg[i] = s[0][i] + 0.5 * k1[i];
+		reCalc(arg, R4, f);
+		for (int i = 0; i < 6; i++) k2[i] = h * f[i];
+		for (int i = 0; i < 6; i++) arg[i] = s[0][i] + 0.5 * k2[i];
+		reCalc(arg, R4, f);
+		for (int i = 0; i < 6; i++) k3[i] = h * f[i];
+		for (int i = 0; i < 6; i++) arg[i] = s[0][i] + k3[i];
+		reCalc(arg, R4, f);
+		for (int i = 0; i < 6; i++) k4[i] = h * f[i];
 		for (int i = 0; i < 6; i++) d_s[i] = (k1[i] + 2 * k2[i] + 2 * k3[i] + k4[i]) / 6;
 		for (int i = 0; i < 6; i++) s[0][i] = s[0][i] + d_s[i];
-		t_i = t_i + h;
+		if (fabs(ti - t_pr[0]) < h && c == 0) h = t_pr[0] - ti; c++;
+
+		// std::cout << "ti = "<< ti << "; r = " << sqrt(s[0][0] * s[0][0] + s[0][1] * s[0][1] + s[0][2] * s[0][2]) << " km" << std::endl;
 	}
 
 	for (int i = 0; i < 6; i++) {
 		std::cout << "s[0][" << i << "] = " << s[0][i] << std::endl;
 	}
-	std::cout << "t_i = " << t_i << std::endl;
-	// все равно какая-то неправильная херня
+
+	std::cout << std::endl << std::endl;
+	double x = s[0][0]; double y = s[0][1]; double z = s[0][2];
+	std::cout << "Check r = " << sqrt(x * x + y * y + z * z) << " km" << std::endl;
+	// похоже на правильное значение, но смущают бешеные скорости
 
 	return 0;
+}
+
+void reCalc(double arg[6], GLOEphemeris R, double f[6]) {
+	double r = sqrt(arg[0] * arg[0] + arg[1] * arg[1] + arg[2] * arg[2]);
+	double A = MU / r;
+	f[0] = arg[3];
+	f[1] = arg[4];
+	f[2] = arg[5];
+	f[3] = (w_e * w_e - A) * arg[0] + 2 * w_e * arg[4] + 1.5 * C20 * MU * R_e * R_e / pow(r, 5) * arg[0] * (1 - (5 * arg[2] * arg[2] / r * r)) + R.w[0];
+	f[4] = (w_e * w_e - A) * arg[1] + 2 * w_e * arg[3] + 1.5 * C20 * MU * R_e * R_e / pow(r, 5) * arg[1] * (1 - (5 * arg[2] * arg[2] / r * r)) + R.w[1];
+	f[5] = -A * arg[2] + 1.5 * C20 * MU * R_e * R_e / pow(r, 5) * arg[2] * (3 - (5 * arg[2] * arg[2] / r * r)) + R.w[2];
 }
 
 void setUpFirstEphemeris() {

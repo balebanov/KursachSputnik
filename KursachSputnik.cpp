@@ -9,8 +9,11 @@ const double R_e = 6378.136; // радиус Земли Rэ [км]
 const double C20 = -1082.64e-6; // коэффициент С20 [б/р]
 const double w_e = 0.7292115e-4; // омега_з - угловая скорость вращения земли [рад/с]
 GLOEphemeris R4, R5, R6, R13, R14, R19, R20, R21, R22; // эфемериды в первой точке
+
 void setUpFirstEphemeris(); // присвоение значений эфемеридам в первой точке
-void reCalc(double arg[6], GLOEphemeris R, double f[6]);
+void reCalc(double arg[6], GLOEphemeris R, double f[6]); // пересчет arg[i]
+void RungeKutt(double t_i, double t_pr, double h, double s[6], double arg[6], double f[6], int c, GLOEphemeris R); // расчет координат методом Рунге-Кутта
+void checkR(double s[9][6], const int num[9]); // проверка и вывод в консоль расстояние от центра Земли до спутника
 
 int main()
 {
@@ -25,6 +28,7 @@ int main()
 	double t_pr[9]; // время предшествия по шкале МДВ
 	double r_pdelay[9]; // массив с псевдозадержками
 
+	// псевдозадержки
 	r_pdelay[0] = 0.073222357522417;
 	r_pdelay[1] = 0.063967380775665;
 	r_pdelay[2] = 0.070070196355748;
@@ -47,21 +51,14 @@ int main()
 	for (int i = 0; i < 9; i++) {
 		double t_pr_body = t_ka[i] + arr[i].tauSys + arr[i].tau - (arr[i].gamma * (t_ka[i] - arr[i].tb));
 		t_pr[i] = fmod(t_pr_body, 86400); // показания спутниковых часов на момент предшествия (T_МДВ)
-		std::cout << "t_pr[" << numberNKA[i] << "] = " << std::fixed << t_pr[i] << " sec" << std::endl;
+		std::cout << "t_MDV[" << numberNKA[i] << "] = " << std::fixed << t_pr[i] << " sec" << std::endl;
 	}
 
-	// std::cout << std::endl << std::endl;
+	std::cout << std::endl << std::endl;
 
 	// Вычисление координат и составляющих вектора скорости спутников
-	//  for (int i = 0; i < 9; i++) {
-	//	  std::cout << "[" << numberNKA[i] << "]: T_MDV = " << t_pr[i] << " sec; tb = " << arr[i].tb << " sec;" << std::endl;
-	//  }
-	
-	std::cout << std::endl << "Integration step h > 0" << std::endl << std::endl;
-
 	// Задаем компоненты вектора s для каждого спутника 
 	double s[9][6]; // 9 - число спутников, 6 число составляющих
-	std::cout << "s[0][i] before intergation: " << std::endl << std::endl;
 
 	for (int i = 0; i < 9; i++) {
 		s[i][0] = arr[i].r[0];
@@ -76,48 +73,52 @@ int main()
 	double t_i = arr[0].tb; // у всех спутников параметр tb - одинаковый 78300
 	
 	// Попробуем сделать один цикл интегрирования для спутника R4
-	for (int i = 0; i < 6; i++) {
-		std::cout << "s[0][" << i << "] = " << s[0][i] << std::endl; // до интегрирования
-	}
+	// std::cout << "s[0][i] before intergation: " << std::endl << std::endl;
+	// for (int i = 0; i < 6; i++) {
+	//	std::cout << "s[0][" << i << "] = " << s[0][i] << std::endl; // до интегрирования
+	// }
 
-	double n = (t_pr[0] - t_i) / h; 
-	std::cout << std::endl << "Number of integration steps: " << int(n) << std::endl;
+	double arg[6], f[6]; // массивы для интегрирования
+	int c = 0; // флаг
 
-	double arg[6], f[6];
-	
-	int c = 0; 
-	for (double ti = t_i; ti <= t_pr[0]; ti = ti + h) { // t_pr[0] = 79089.....
-		for (int i = 0; i < 6; i++) arg[i] = s[0][i];
-
-		reCalc(arg, R4, f);
-		double k1[6], k2[6], k3[6], k4[6], d_s[6];
-		for (int i = 0; i < 6; i++) k1[i] = h * f[i];
-		for (int i = 0; i < 6; i++) arg[i] = s[0][i] + 0.5 * k1[i];
-		reCalc(arg, R4, f);
-		for (int i = 0; i < 6; i++) k2[i] = h * f[i];
-		for (int i = 0; i < 6; i++) arg[i] = s[0][i] + 0.5 * k2[i];
-		reCalc(arg, R4, f);
-		for (int i = 0; i < 6; i++) k3[i] = h * f[i];
-		for (int i = 0; i < 6; i++) arg[i] = s[0][i] + k3[i];
-		reCalc(arg, R4, f);
-		for (int i = 0; i < 6; i++) k4[i] = h * f[i];
-		for (int i = 0; i < 6; i++) d_s[i] = (k1[i] + 2 * k2[i] + 2 * k3[i] + k4[i]) / 6;
-		for (int i = 0; i < 6; i++) s[0][i] = s[0][i] + d_s[i];
-		if (fabs(ti - t_pr[0]) < h && c == 0) h = t_pr[0] - ti; c++;
-
-		// std::cout << "ti = "<< ti << "; r = " << sqrt(s[0][0] * s[0][0] + s[0][1] * s[0][1] + s[0][2] * s[0][2]) << " km" << std::endl;
-	}
+	for (int i = 0; i < 9; i++) RungeKutt(t_i, t_pr[i], h, s[i], arg, f, c, arr[i]); // нахождение координат
 
 	for (int i = 0; i < 6; i++) {
-		std::cout << "s[0][" << i << "] = " << s[0][i] << std::endl;
+		std::cout << "s[0][" << i << "] = " << s[0][i] << "; s[1][" << i << "] = " << s[1][i] << std::endl;
 	}
 
 	std::cout << std::endl << std::endl;
-	double x = s[0][0]; double y = s[0][1]; double z = s[0][2];
-	std::cout << "Check r = " << sqrt(x * x + y * y + z * z) << " km" << std::endl;
+	checkR(s, numberNKA);
 	// похоже на правильное значение, но смущают бешеные скорости
 
 	return 0;
+}
+
+void RungeKutt(double t_i, double t_pr, double h, double s[6], double arg[6], double f[6], int c, GLOEphemeris R) {
+	c = 0;
+	// расчет для R5
+	for (double ti = t_i; ti <= t_pr; ti = ti + h) { // t_pr[0] = 79089.....
+		for (int i = 0; i < 6; i++) arg[i] = s[i];
+		reCalc(arg, R, f);
+		double k1[6], k2[6], k3[6], k4[6], d_s[6];
+		for (int i = 0; i < 6; i++) k1[i] = h * f[i];
+		for (int i = 0; i < 6; i++) arg[i] = s[i] + 0.5 * k1[i];
+		reCalc(arg, R, f);
+		for (int i = 0; i < 6; i++) k2[i] = h * f[i];
+		for (int i = 0; i < 6; i++) arg[i] = s[i] + 0.5 * k2[i];
+		reCalc(arg, R, f);
+		for (int i = 0; i < 6; i++) k3[i] = h * f[i];
+		for (int i = 0; i < 6; i++) arg[i] = s[i] + k3[i];
+		reCalc(arg, R, f);
+		for (int i = 0; i < 6; i++) k4[i] = h * f[i];
+		for (int i = 0; i < 6; i++) d_s[i] = (k1[i] + 2 * k2[i] + 2 * k3[i] + k4[i]) / 6;
+		for (int i = 0; i < 6; i++) s[i] = s[i] + d_s[i];
+		if (fabs(ti - t_pr) < h && c == 0) h = t_pr - ti; c++;
+	}
+}
+
+void checkR(double s[9][6], const int num[9]) {
+	for(int i = 0; i < 9; i++) std::cout << "Check R" << num[i] << " = " << sqrt(s[i][0] * s[i][0] + s[i][1] * s[i][1] + s[i][2] * s[i][2]) << " km" << std::endl;
 }
 
 void reCalc(double arg[6], GLOEphemeris R, double f[6]) {

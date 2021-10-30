@@ -40,15 +40,8 @@ int main()
 	r_pdelay[8] = 0.078249788524393;
 	
 	// Вычисление времени предшествия t_pr по шкале МДВ
-	
 	for (int i = 0; i < 9; i++) {
 		t_ka[i] = T_reciever - r_pdelay[i];
-		// std::cout << "t_ka[" << numberNKA[i] << "] = " << std::fixed << t_ka[i] << " sec" << std::endl;
-	}
-	
-	// std::cout << std::endl << std::endl;
-
-	for (int i = 0; i < 9; i++) {
 		double t_pr_body = t_ka[i] + arr[i].tauSys + arr[i].tau - (arr[i].gamma * (t_ka[i] - arr[i].tb));
 		t_pr[i] = fmod(t_pr_body, 86400); // показания спутниковых часов на момент предшествия (T_МДВ)
 		std::cout << "t_MDV[" << numberNKA[i] << "] = " << std::fixed << t_pr[i] << " sec" << std::endl;
@@ -71,25 +64,27 @@ int main()
 	
 	double h = 1.; // шаг интегрирования [с]
 	double t_i = arr[0].tb; // у всех спутников параметр tb - одинаковый 78300
-	
-	// Попробуем сделать один цикл интегрирования для спутника R4
-	// std::cout << "s[0][i] before intergation: " << std::endl << std::endl;
-	// for (int i = 0; i < 6; i++) {
-	//	std::cout << "s[0][" << i << "] = " << s[0][i] << std::endl; // до интегрирования
-	// }
-
 	double arg[6], f[6]; // массивы для интегрирования
 	int c = 0; // флаг
 
 	for (int i = 0; i < 9; i++) RungeKutt(t_i, t_pr[i], h, s[i], arg, f, c, arr[i]); // нахождение координат
 
-	for (int i = 0; i < 6; i++) {
-		std::cout << "s[0][" << i << "] = " << s[0][i] << "; s[1][" << i << "] = " << s[1][i] << std::endl;
+	for (int j = 0; j < 9; j++) {
+		for (int i = 0; i < 3; i++) {
+			// вывод координат
+			std::cout << "s[" << j << "][" << i << "] = " << s[j][i] << " km;" << std::endl;
+		}
+		for (int i = 3; i < 6; i++) {
+			// вывод скоростей
+			std::cout << "s[" << j << "][" << i << "] = " << s[j][i] << " km per sec;" << std::endl;
+		}
+		std::cout << std::endl;
 	}
+
 
 	std::cout << std::endl << std::endl;
 	checkR(s, numberNKA);
-	// похоже на правильное значение, но смущают бешеные скорости
+	// похоже на правду, но смущают бешеные скорости
 
 	return 0;
 }

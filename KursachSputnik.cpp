@@ -8,6 +8,7 @@ const double MU = 398600.44; // мю [км3/с2]
 const double R_e = 6378.136; // радиус Земли Rэ [км]
 const double C20 = -1082.64e-6; // коэффициент С20 [б/р]
 const double w_e = 0.7292115e-4; // омега_з - угловая скорость вращения земли [рад/с]
+const double C = 2.99792458e+3; // скорость света [м/с]
 GLOEphemeris R4, R5, R6, R13, R14, R19, R20, R21, R22; // эфемериды в первой точке
 
 void setUpFirstEphemeris(); // присвоение значений эфемеридам в первой точке
@@ -26,7 +27,7 @@ int main()
 
 	double t_ka[9]; // время на КА
 	double t_pr[9]; // время предшествия по шкале МДВ
-	double r_pdelay[9]; // массив с псевдозадержками
+	double r_pdelay[9]; // массив с псевдозадержками в момент измерения
 
 	// псевдозадержки
 	r_pdelay[0] = 0.073222357522417;
@@ -68,7 +69,8 @@ int main()
 	int c = 0; // флаг
 
 	for (int i = 0; i < 9; i++) RungeKutt(t_i, t_pr[i], h, s[i], arg, f, c, arr[i]); // нахождение координат
-
+	/*
+	
 	for (int j = 0; j < 9; j++) {
 		for (int i = 0; i < 3; i++) {
 			// вывод координат
@@ -81,9 +83,18 @@ int main()
 		std::cout << std::endl;
 	}
 
-	std::cout << std::endl << std::endl;
-	checkR(s, numberNKA);
+	*/
+
+	// std::cout << std::endl << std::endl;
+	// checkR(s, numberNKA);
 	// теперь уже точно похоже на правду
+
+	// Вычисление координат приемника
+	// Нужно найти Тсис = Тглн
+	for (int i = 0; i < 9; i++) {
+		std::cout << "T_sys[" << numberNKA[i] << "] = " << std::fixed << arr[i].tau << " + " << t_ka[i] << " = " << arr[i].tau + t_ka[i] << std::endl;
+	}
+	// какая-то хрень, получается, что Tсис = Tмдв
 
 	return 0;
 }

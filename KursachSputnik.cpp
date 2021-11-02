@@ -22,7 +22,7 @@ int main()
 	// Вариант работы R1.5
 	const double T_reciever = 79090.0; // время приемника [сек]
 	const int numberNKA[9] = { 4, 5, 6, 13, 14, 19, 20, 21, 22 }; // номера КА (НКА)
-	GLOEphemeris arr[9] = { R4, R5, R6, R13, R14, R19, R20, R21, R22 };
+	GLOEphemeris arr[9] = { R4, R5, R6, R13, R14, R19, R20, R21, R22 }; // массив спутников
 
 	double t_ka[9]; // время на КА
 	double t_pr[9]; // время предшествия по шкале МДВ
@@ -81,18 +81,17 @@ int main()
 		std::cout << std::endl;
 	}
 
-
 	std::cout << std::endl << std::endl;
 	checkR(s, numberNKA);
-	// похоже на правду, но смущают бешеные скорости
+	// теперь уже точно похоже на правду
 
 	return 0;
 }
 
 void RungeKutt(double t_i, double t_pr, double h, double s[6], double arg[6], double f[6], int c, GLOEphemeris R) {
 	c = 0;
-	// расчет для R5
-	for (double ti = t_i; ti <= t_pr; ti = ti + h) { // t_pr[0] = 79089.....
+	
+	for (double ti = t_i; ti >= t_pr; ti = ti + h) { // t_pr[0] = 79089.....
 		for (int i = 0; i < 6; i++) arg[i] = s[i];
 		reCalc(arg, R, f);
 		double k1[6], k2[6], k3[6], k4[6], d_s[6];

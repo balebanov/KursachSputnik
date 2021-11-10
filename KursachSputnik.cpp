@@ -62,38 +62,36 @@ int main()
 		s[i][4] = arr[i].v[1];
 		s[i][5] = arr[i].v[2];
 	}
-	
+
 	double h = 1.; // шаг интегрирования [с]
 	double t_i = arr[0].tb; // у всех спутников параметр tb - одинаковый 78300
 	double arg[6], f[6]; // массивы для интегрирования
 	int c = 0; // флаг
 
 	for (int i = 0; i < 9; i++) RungeKutt(t_i, t_pr[i], h, s[i], arg, f, c, arr[i]); // нахождение координат
-	/*
+	
 	
 	for (int j = 0; j < 9; j++) {
 		for (int i = 0; i < 3; i++) {
 			// вывод координат
-			std::cout << "s[" << j << "][" << i << "] = " << s[j][i] << " km;" << std::endl;
+			std::cout << "s[" << numberNKA[j] << "][" << i << "] = " << s[j][i] << " km;" << std::endl;
 		}
-		for (int i = 3; i < 6; i++) {
-			// вывод скоростей
-			std::cout << "s[" << j << "][" << i << "] = " << s[j][i] << " km per sec;" << std::endl;
-		}
+	//	for (int i = 3; i < 6; i++) {
+	//		// вывод скоростей
+	//		std::cout << "s[" << j << "][" << i << "] = " << s[j][i] << " km per sec;" << std::endl;
+	//	}
 		std::cout << std::endl;
 	}
 
-	*/
-
-	// std::cout << std::endl << std::endl;
-	// checkR(s, numberNKA);
-	// теперь уже точно похоже на правду
+	std::cout << std::endl << std::endl;
+	checkR(s, numberNKA);
+	// координаты неверные
 
 	// Вычисление координат приемника
 	// Нужно найти Тсис = Тглн
-	for (int i = 0; i < 9; i++) {
-		std::cout << "T_sys[" << numberNKA[i] << "] = " << std::fixed << arr[i].tau << " + " << t_ka[i] << " = " << arr[i].tau + t_ka[i] << std::endl;
-	}
+	// for (int i = 0; i < 9; i++) {
+	//	std::cout << "T_sys[" << numberNKA[i] << "] = " << std::fixed << arr[i].tau << " + " << t_ka[i] << " = " << arr[i].tau + t_ka[i] << std::endl;
+	// }
 	// какая-то хрень, получается, что Tсис = Tмдв
 
 	return 0;
@@ -102,7 +100,7 @@ int main()
 void RungeKutt(double t_i, double t_pr, double h, double s[6], double arg[6], double f[6], int c, GLOEphemeris R) {
 	c = 0;
 	
-	for (double ti = t_i; ti >= t_pr; ti = ti + h) { // t_pr[0] = 79089.....
+	for (double ti = t_i; ti <= t_pr; ti = ti + h) { // t_pr[0] = 79089.....
 		for (int i = 0; i < 6; i++) arg[i] = s[i];
 		reCalc(arg, R, f);
 		double k1[6], k2[6], k3[6], k4[6], d_s[6];

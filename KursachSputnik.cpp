@@ -44,8 +44,8 @@ int main()
 	for (int i = 0; i < 9; i++) {
 		t_ka[i] = T_reciever - r_pdelay[i];
 		double t_pr_body = t_ka[i] + arr[i].tauSys + arr[i].tau - (arr[i].gamma * (t_ka[i] - arr[i].tb));
-		t_pr[i] = fmod(t_pr_body, 86400); // показания спутниковых часов на момент предшествия (T_МДВ)
-		std::cout << "t_MDV[" << numberNKA[i] << "] = " << std::fixed << t_pr[i] << " sec" << std::endl;
+		t_pr[i] = fmod(t_pr_body, 86400); // показания спутниковых часов на момент предшествия (T_пр)
+		std::cout << "t_pr[" << numberNKA[i] << "] = " << std::fixed << t_pr[i] << " sec" << std::endl;
 	}
 
 	std::cout << std::endl << std::endl;
@@ -63,29 +63,38 @@ int main()
 		s[i][5] = arr[i].v[2];
 	}
 
-	double h = 1.; // шаг интегрирования [с]
-	double t_i = arr[0].tb; // у всех спутников параметр tb - одинаковый 78300
+	double h = 1; // шаг интегрирования [с]
+	double t_i = arr[0].tb; // у всех спутников параметр tb - одинаковый 78300	
 	double arg[6], f[6]; // массивы для интегрирования
 	int c = 0; // флаг
+	double t_mdv[9]; // верхние пределы интегрирования
+	
+	std::cout << std::endl;
+	for (int i = 0; i < 9; i++)
+	{
+		t_mdv[i] = t_pr[i] + arr[i].tau - arr[i].gamma * (t_pr[i] - arr[i].tb) + arr[i].tauSys;
+		if (t_mdv[i] < 0) t_mdv[i] = t_mdv[i] + 86400.;
+		std::cout << "t_mdv[" << numberNKA[i] << "] = " << t_mdv[i] << " sec" << std::endl;
+	}
+	std::cout << std::endl;
 
-	for (int i = 0; i < 9; i++) RungeKutt(t_i, t_pr[i], h, s[i], arg, f, c, arr[i]); // нахождение координат
-	
-	
+	for (int i = 0; i < 9; i++) RungeKutt(t_i, t_mdv[i], h, s[i], arg, f, c, arr[i]); // нахождение координат
+		
 	for (int j = 0; j < 9; j++) {
 		for (int i = 0; i < 3; i++) {
 			// вывод координат
 			std::cout << "s[" << numberNKA[j] << "][" << i << "] = " << s[j][i] << " km;" << std::endl;
 		}
-	//	for (int i = 3; i < 6; i++) {
-	//		// вывод скоростей
-	//		std::cout << "s[" << j << "][" << i << "] = " << s[j][i] << " km per sec;" << std::endl;
-	//	}
+		for (int i = 3; i < 6; i++) {
+			// вывод скоростей
+			std::cout << "s[" << numberNKA[j] << "][" << i << "] = " << s[j][i] << " km per sec;" << std::endl;
+		}
 		std::cout << std::endl;
 	}
 
 	std::cout << std::endl << std::endl;
 	checkR(s, numberNKA);
-	// координаты неверные
+	// координаты похожи на правду
 
 	// Вычисление координат приемника
 	// Нужно найти Тсис = Тглн
@@ -97,10 +106,10 @@ int main()
 	return 0;
 }
 
-void RungeKutt(double t_i, double t_pr, double h, double s[6], double arg[6], double f[6], int c, GLOEphemeris R) {
+void RungeKutt(double t_i, double t_mdv, double h, double s[6], double arg[6], double f[6], int c, GLOEphemeris R) {
 	c = 0;
 	
-	for (double ti = t_i; ti <= t_pr; ti = ti + h) { // t_pr[0] = 79089.....
+	for (double ti = t_i; ti >= t_mdv; ti = ti + h) { // t_pr[0] = 79089.....
 		for (int i = 0; i < 6; i++) arg[i] = s[i];
 		reCalc(arg, R, f);
 		double k1[6], k2[6], k3[6], k4[6], d_s[6];
@@ -116,7 +125,7 @@ void RungeKutt(double t_i, double t_pr, double h, double s[6], double arg[6], do
 		for (int i = 0; i < 6; i++) k4[i] = h * f[i];
 		for (int i = 0; i < 6; i++) d_s[i] = (k1[i] + 2 * k2[i] + 2 * k3[i] + k4[i]) / 6;
 		for (int i = 0; i < 6; i++) s[i] = s[i] + d_s[i];
-		if (fabs(ti - t_pr) < h && c == 0) h = t_pr - ti; c++;
+		if (fabs(ti - t_mdv) < h && c == 0) h = t_mdv - ti; c++;
 	}
 }
 
@@ -126,7 +135,7 @@ void checkR(double s[9][6], const int num[9]) {
 
 void reCalc(double arg[6], GLOEphemeris R, double f[6]) {
 	double r = sqrt(arg[0] * arg[0] + arg[1] * arg[1] + arg[2] * arg[2]);
-	double A = MU / r;
+	double A = MU / pow(r, 3);
 	f[0] = arg[3];
 	f[1] = arg[4];
 	f[2] = arg[5];

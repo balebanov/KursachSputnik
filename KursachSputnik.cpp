@@ -1,4 +1,5 @@
 ﻿#include <iostream>
+#include <iomanip>
 #include <cstdio>
 #include <cmath>
 #include <Windows.h>
@@ -45,7 +46,8 @@ int main()
 		t_ka[i] = T_reciever - r_pdelay[i];
 		double t_pr_body = t_ka[i] + arr[i].tauSys + arr[i].tau - (arr[i].gamma * (t_ka[i] - arr[i].tb));
 		t_pr[i] = fmod(t_pr_body, 86400); // показания спутниковых часов на момент предшествия (T_пр)
-		std::cout << "t_pr[" << numberNKA[i] << "] = " << std::fixed << t_pr[i] << " sec" << std::endl;
+		// std::cout << "t_pr[" << numberNKA[i] << "] = " << std::fixed << t_pr[i] << " sec" << std::endl;
+		std::cout << "t_pr[" << numberNKA[i] << "] = " << std::setprecision(20) << t_pr[i] << " sec" << std::endl;
 	}
 
 	std::cout << std::endl << std::endl;
@@ -83,12 +85,12 @@ int main()
 	for (int j = 0; j < 9; j++) {
 		for (int i = 0; i < 3; i++) {
 			// вывод координат
-			std::cout << "s[" << numberNKA[j] << "][" << i << "] = " << s[j][i] << " km;" << std::endl;
+			std::cout << "s[" << numberNKA[j] << "][" << i << "] = " << std::setprecision(10) << s[j][i] << " km;" << std::endl;
 		}
-		for (int i = 3; i < 6; i++) {
-			// вывод скоростей
-			std::cout << "s[" << numberNKA[j] << "][" << i << "] = " << s[j][i] << " km per sec;" << std::endl;
-		}
+		//for (int i = 3; i < 6; i++) {
+		//	// вывод скоростей
+		//	std::cout << "s[" << numberNKA[j] << "][" << i << "] = " << s[j][i] << " km per sec;" << std::endl;
+		//}
 		std::cout << std::endl;
 	}
 
@@ -98,9 +100,9 @@ int main()
 
 	// Вычисление координат приемника
 	// Нужно найти Тсис = Тглн
-	// for (int i = 0; i < 9; i++) {
-	//	std::cout << "T_sys[" << numberNKA[i] << "] = " << std::fixed << arr[i].tau << " + " << t_ka[i] << " = " << arr[i].tau + t_ka[i] << std::endl;
-	// }
+	for (int i = 0; i < 9; i++) {
+		std::cout << "T_sys[" << numberNKA[i] << "] = " << std::fixed << arr[i].tau << " + " << t_ka[i] << " = " << arr[i].tau + t_ka[i] << " sec" << std::endl;
+	}
 	// какая-то хрень, получается, что Tсис = Tмдв
 
 	return 0;

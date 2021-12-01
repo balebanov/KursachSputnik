@@ -1,8 +1,6 @@
 ﻿#include <iostream>
 #include <iomanip>
-#include <cstdio>
 #include <cmath>
-#include <Windows.h>
 #include "GLOEphemeris.h"
 
 const double MU = 398600.44; // мю [км3/с2]
@@ -30,7 +28,7 @@ int main()
 	double t_pr[9]; // время предшествия по шкале МДВ
 	double r_pdelay[9]; // массив с псевдозадержками в момент измерения
 
-	// псевдозадержки
+	// псевдозадержки [с]
 	r_pdelay[0] = 0.073222357522417;
 	r_pdelay[1] = 0.063967380775665;
 	r_pdelay[2] = 0.070070196355748;
@@ -41,7 +39,7 @@ int main()
 	r_pdelay[7] = 0.066034261800248;
 	r_pdelay[8] = 0.078249788524393;
 	
-	// Вычисление времени предшествия t_pr по шкале МДВ
+	// вычисление времени предшествия t_pr по шкале МДВ
 	for (int i = 0; i < 9; i++) {
 		t_ka[i] = T_reciever - r_pdelay[i];
 		double t_pr_body = t_ka[i] + arr[i].tauSys + arr[i].tau - (arr[i].gamma * (t_ka[i] - arr[i].tb));
@@ -52,8 +50,8 @@ int main()
 
 	std::cout << std::endl << std::endl;
 
-	// Вычисление координат и составляющих вектора скорости спутников
-	// Задаем компоненты вектора s для каждого спутника 
+	// вычисление координат и составляющих вектора скорости спутников
+	// задаем компоненты вектора s для каждого спутника 
 	double s[9][6]; // 9 - число спутников, 6 число составляющих
 
 	for (int i = 0; i < 9; i++) {
@@ -98,20 +96,19 @@ int main()
 	checkR(s, numberNKA);
 	// координаты похожи на правду
 
-	// Вычисление координат приемника
-	// Нужно найти Тсис = Тглн
+	// вычисление координат приемника
+	// нужно найти Тсис = Тглн
 	for (int i = 0; i < 9; i++) {
-		std::cout << "T_sys[" << numberNKA[i] << "] = " << std::fixed << arr[i].tau << " + " << t_ka[i] << " = " << arr[i].tau + t_ka[i] << " sec" << std::endl;
+		std::cout << "T_sys[" << numberNKA[i] << "] = " << std::setprecision(20) << arr[i].tau << " + " << t_ka[i] << " = " << arr[i].tau + t_ka[i] << " sec" << std::endl;
 	}
-	// какая-то хрень, получается, что Tсис = Tмдв
-
+	
 	return 0;
 }
 
 void RungeKutt(double t_i, double t_mdv, double h, double s[6], double arg[6], double f[6], int c, GLOEphemeris R) {
 	c = 0;
 	
-	for (double ti = t_i; ti >= t_mdv; ti = ti + h) { // t_pr[0] = 79089.....
+	for (double ti = t_i; ti >= t_mdv; ti = ti + h) { 
 		for (int i = 0; i < 6; i++) arg[i] = s[i];
 		reCalc(arg, R, f);
 		double k1[6], k2[6], k3[6], k4[6], d_s[6];
@@ -133,6 +130,7 @@ void RungeKutt(double t_i, double t_mdv, double h, double s[6], double arg[6], d
 
 void checkR(double s[9][6], const int num[9]) {
 	for(int i = 0; i < 9; i++) std::cout << "Check R" << num[i] << " = " << sqrt(s[i][0] * s[i][0] + s[i][1] * s[i][1] + s[i][2] * s[i][2]) << " km" << std::endl;
+	std::cout << std::endl << std::endl;
 }
 
 void reCalc(double arg[6], GLOEphemeris R, double f[6]) {

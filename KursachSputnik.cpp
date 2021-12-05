@@ -3,7 +3,7 @@
 #include <cmath>
 #include "GLOEphemeris.h"
 
-const double MU = 398600.44; // мю [км3/с2]
+const double MU = 398600.44; // мю - гравитационный параметр Земли [км3/с2]
 const double R_e = 6378.136; // радиус Земли Rэ [км]
 const double C20 = -1082.64e-6; // коэффициент С20 [б/р]
 const double w_e = 0.7292115e-4; // омега_з - угловая скорость вращения земли [рад/с]
@@ -64,16 +64,14 @@ int main()
 		s[i][5] = arr[i].v[2];
 	}
 
-	for (int i = 0; i < 1; i++) RungeKutt(t_i, t_mdv[i], h, s[i], arg, f, arr[i]); // нахождение координат методом Рунге-Кутта
+	for (int i = 0; i < 9; i++) RungeKutt(t_i, t_mdv[i], h, s[i], arg, f, arr[i]); // нахождение координат методом Рунге-Кутта
 
 	std::cout << std::endl;
 	for (int j = 0; j < 9; j++) {
-		for (int i = 0; i < 3; i++) {
-			// вывод координат
-			std::cout << "s[" << numberNKA[j] << "][" << i << "] = " << std::fixed << std::setprecision(10) << s[j][i] << " km;" << std::endl;
-		}
-		std::cout << std::endl;
+		// вывод координат
+		std::cout << "sv = " << numberNKA[j] << ": {" << std::fixed << std::setprecision(10) << s[j][0] << "; " << s[j][1] << "; " << s[j][2] << "} km" << std::endl;
 	}
+	std::cout << std::endl;
 	for(int i = 0; i < 9; i++) checkR(s[i], numberNKA[i]);
 
 	return 0;
